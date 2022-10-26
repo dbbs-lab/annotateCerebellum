@@ -1,42 +1,51 @@
-import sys
 from os.path import join
-import nrrd
 import json
 from annotate_cerebellum.paint_tools import PaintAnnotations
+from annotate_cerebellum.utils import *
 from JSONread import *
 
-if len(sys.argv) < 2:
-    print('The data folder path is required')
-    sys.exit(1)
-DATA_FOLDER = sys.argv[-1]
+# Path to the files (can be either nrrd files or numpy files)
+DATA_FOLDER = "data"
+nissl_filename = join(DATA_FOLDER, "ara_nissl_25.nrrd")
+annotation_filename = join(DATA_FOLDER, "annotation_corrected_clfd.npy")
+hierarchy_filename = join(DATA_FOLDER, "brain_regions.json")
+output_filename = join(DATA_FOLDER, "annotation_corrected_clfd.npy")
 
+# Protected regions
 protected_regions = ["Lingula (I)", "Flocculus", "Crus 1"]
 
 # Load json hierarchy file
-jsontextfile = open(join(DATA_FOLDER, "brain_regions.json"), "r")
+jsontextfile = open(hierarchy_filename, "r")
 jsoncontent = json.loads(jsontextfile.read())
 search_children(jsoncontent['msg'][0])
 
 # Load Nissl and annotations
-nissl, h = nrrd.read(join(DATA_FOLDER, "ara_nissl_25.nrrd"))
-ann = np.load(join(DATA_FOLDER, 'annotation_corrected_clfd.npy'))
+nissl = load_nrrd_npy_file(nissl_filename)
+ann = load_nrrd_npy_file(annotation_filename)
+
+u_regions = find_unique_regions(ann, id_to_region_dictionary_ALLNAME,
+                                region_dictionary_to_id_ALLNAME,
+                                region_dictionary_to_id_ALLNAME_parent, name2allname)
+children, _ = find_children(u_regions, id_to_region_dictionary_ALLNAME, is_leaf,
+                            region_dictionary_to_id_ALLNAME_parent, region_dictionary_to_id_ALLNAME)
+ids_prot = []
+for region in protected_regions:
+    ids_prot.extend(children[name2allname[region]])
 
 ids_mol = return_ids_containing_str_list(["Cerebellar cortex", "molecular"], True)
 ids_FT = return_ids_containing_str_list(["cerebellum related fiber tracts"], True)
-
-ids_prot = []
-for name in protected_regions:
-    for child, parent in region_dictionary_to_id_parent.items():
-        if parent == name:
-            ids_prot.append(region_dictionary_to_id[child])
 
 for i, id_ in enumerate(ids_mol[1:]):
     print(i, region_dictionary_to_id_parent[id_to_region_dictionary[id_]])
 
 i = int(input("Enter the number of the region to correct "))
 id_mol = ids_mol[i + 1]
+parent_name = region_dictionary_to_id_parent[id_to_region_dictionary[id_mol]]
 print("You have selected:")
-print(i, region_dictionary_to_id_parent[id_to_region_dictionary[id_mol]])
+print(i, parent_name)
+
+# Lift the protection on the region if it is selected.
+ids_prot = np.delete(ids_prot, np.isin(ids_prot, children[name2allname[parent_name]]))
 
 parent_name = region_dictionary_to_id_ALLNAME_parent[id_to_region_dictionary_ALLNAME[id_mol]]
 last_name = parent_name[parent_name.rfind("|") + 1:]
@@ -48,7 +57,7 @@ paintAppli = PaintAnnotations(ann, nissl, {
     "fib": ids_FT,
     "out": [0],
     "prot": ids_prot
-    })
+})
 
 ann = paintAppli.get_annotations()
-np.save(join(DATA_FOLDER, 'annotation_corrected_clfd.npy'), ann)
+save_nrrd_npy_file(output_filename, ann, header=DEFAULT_HEADER)
