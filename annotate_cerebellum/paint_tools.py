@@ -8,15 +8,24 @@ from tkinter import Tk, Frame, Button, Label, Scale, RIDGE, RAISED, SUNKEN, HORI
 from PIL import ImageTk, Image
 from annotate_cerebellum.canvas_image import CanvasImage
 from annotate_cerebellum.annotation_image import AnnotationImage
+from annotate_cerebellum.utils import draw_2d_line
 
 
 class PaintTools:
     """
-    Class that contains the controller of the user application to modify volumetric cerebellar
-    annotations.
+    Class of the controller of the user application to modify volumetric cerebellar annotations.
+    Contains also the view of the paint toolbox.
     """
-    def __init__(self, placeholder, icon_folder, canvas, annotations):
 
+    def __init__(self, placeholder, icon_folder, canvas, annotations):
+        """
+        Initialize the controller and the view of the paint toolbox for the annotation correction
+        application.
+        :param placeholder: Parent widget holding the CanvasImage
+        :param icon_folder: Folder containing the icons of the painting toolbox.
+        :param canvas: View of the displayed annotations
+        :param annotations: Model of the displayed annotations
+        """
         self.paint_tools = Frame(placeholder, relief=RIDGE, borderwidth=2)
         self.canvas = canvas
         self.annotations = annotations
@@ -99,53 +108,87 @@ class PaintTools:
         self.save_button.grid(row=0, column=6, padx=10, pady=10, sticky='nw')
 
     def grid(self, **kw):
-        """ Put CanvasImage widget on the parent widget """
+        """
+        Put the Paint tools widget on the parent widget
+        """
         self.paint_tools.grid(**kw)  # place CanvasImage widget on the grid
         self.paint_tools.grid(sticky='nw')  # make frame container sticky
         self.paint_tools.rowconfigure(0, weight=1)  # make canvas expandable
         self.paint_tools.columnconfigure(0, weight=1)
 
     def use_pen(self):
-        self.activate_button(self.pen_button)
-        self.canvas.canvas.bind('<ButtonRelease-1>', self.reset)
+        """
+        Activate the pen tool.
+        """
+        self.__activate_button(self.pen_button)
+        self.canvas.canvas.bind('<ButtonRelease-1>', self.__reset)
         self.canvas.canvas.bind('<B1-Motion>', self.paint)
 
     def use_fill(self):
-        self.activate_button(self.fill_button)
+        """
+        Activate the fill tool.
+        """
+        self.__activate_button(self.fill_button)
         self.canvas.canvas.bind('<ButtonRelease-1>', self.fill)
 
     def use_eraser(self):
-        self.activate_button(self.eraser_button)
-        self.canvas.canvas.bind('<ButtonRelease-1>', self.reset)
+        """
+        Activate the eraser tool.
+        """
+        self.__activate_button(self.eraser_button)
+        self.canvas.canvas.bind('<ButtonRelease-1>', self.__reset)
         self.canvas.canvas.bind('<B1-Motion>', self.erase)
 
     def change_slice(self, coronal_pos):
+        """
+        Change the slice displayed based on the provided coronal position.
+        """
         self.annotations.change_slice(int(coronal_pos))
         self.canvas.update_image(self.annotations.picRGB)
 
-    def change_color(self, some_button):
+    def __change_color(self, some_button):
+        """
+        Change the active group or color button
+        :param some_button: Button to activate
+        """
         if self.active_color is not None:
             self.active_color.config(relief=RAISED)
         some_button.config(relief=SUNKEN)
         self.active_color = some_button
 
     def set_gl(self):
-        self.change_color(self.red_button)
+        """
+        Set the active group or color button to granular layer.
+        """
+        self.__change_color(self.red_button)
         self.current_key = "gl"
 
     def set_ml(self):
-        self.change_color(self.green_button)
+        """
+        Set the active group or color button to molecular layer.
+        """
+        self.__change_color(self.green_button)
         self.current_key = "mol"
 
     def set_fib(self):
-        self.change_color(self.blue_button)
+        """
+        Set the active group or color button to fiber tracts.
+        """
+        self.__change_color(self.blue_button)
         self.current_key = "fib"
 
     def set_out(self):
-        self.change_color(self.black_button)
+        """
+        Set the active group or color button to the outside.
+        """
+        self.__change_color(self.black_button)
         self.current_key = "out"
 
-    def activate_button(self, some_button):
+    def __activate_button(self, some_button):
+        """
+        Change the active tool button
+        :param some_button: Button to activate
+        """
         if self.active_button is not None:
             self.active_button.config(relief=RAISED)
         some_button.config(relief=SUNKEN)
@@ -157,46 +200,29 @@ class PaintTools:
         self.old_y = None
 
     def use_move(self):
-        self.activate_button(self.move_button)
+        """
+        Activate the move tool.
+        """
+        self.__activate_button(self.move_button)
         self.canvas.canvas.bind('<ButtonPress-1>',
                                 lambda event: self.canvas.canvas.scan_mark(event.x, event.y))
         self.canvas.canvas.bind("<B1-Motion>", self.canvas.move_to)
 
-    def reset(self, event):
+    def __reset(self, _):
         self.old_x, self.old_y = None, None
 
-    @staticmethod
-    def draw_2d_line(x0, y0, x1, y1):
-        dx = abs(x1 - x0)
-        sx = 1 if x0 < x1 else -1
-        dy = -abs(y1 - y0)
-        sy = 1 if y0 < y1 else -1
-        error = dx + dy
-        voxels = []
-        while True:
-            voxels.append([x0, y0])
-            if abs(x0 - x1) < 1 and abs(y0 - y1) < 1:
-                break
-            e2 = 2 * error
-            if e2 >= dy:
-                if abs(x0 - x1) < 1:
-                    break
-                error = error + dy
-                x0 = x0 + sx
-            if e2 <= dx:
-                if abs(y0 - y1) < 1:
-                    break
-                error = error + dx
-                y0 = y0 + sy
-        return np.unique(np.asarray(np.rint(np.array(voxels)), dtype=int), axis=0)
-
     def paint(self, event):
+        """
+        Draw all the voxels between the current and previously recorded position of the mouse
+        cursor on the view and update the annotations.
+        :param event: Position of the mouse cursor when the function is called.
+        """
         offset_x, offset_y = self.canvas.get_offsets()
         if self.old_x and self.old_y and self.current_key:
-            voxels_to_update = self.draw_2d_line((self.old_x + offset_x) / self.canvas.imscale,
-                                                 (self.old_y + offset_y) / self.canvas.imscale,
-                                                 (event.x + offset_x) / self.canvas.imscale,
-                                                 (event.y + offset_y) / self.canvas.imscale) - 1
+            voxels_to_update = draw_2d_line((self.old_x + offset_x) / self.canvas.imscale,
+                                            (self.old_y + offset_y) / self.canvas.imscale,
+                                            (event.x + offset_x) / self.canvas.imscale,
+                                            (event.y + offset_y) / self.canvas.imscale) - 1
             voxels_to_update = np.array([voxels_to_update[:, 1], voxels_to_update[:, 0]]).T
             # Update RGB
             self.annotations.update_slice(voxels_to_update, self.current_key)
@@ -205,12 +231,17 @@ class PaintTools:
         self.old_y = event.y
 
     def erase(self, event):
+        """
+        Revert the changes applied to the images and the annotation between the current and
+        previously recorded position of the mouse cursor.
+        :param event: Position of the mouse cursor when the function is called.
+        """
         offset_x, offset_y = self.canvas.get_offsets()
         if self.old_x and self.old_y and self.current_key:
-            voxels_to_update = self.draw_2d_line((self.old_x + offset_x) / self.canvas.imscale,
-                                                 (self.old_y + offset_y) / self.canvas.imscale,
-                                                 (event.x + offset_x) / self.canvas.imscale,
-                                                 (event.y + offset_y) / self.canvas.imscale) - 1
+            voxels_to_update = draw_2d_line((self.old_x + offset_x) / self.canvas.imscale,
+                                            (self.old_y + offset_y) / self.canvas.imscale,
+                                            (event.x + offset_x) / self.canvas.imscale,
+                                            (event.y + offset_y) / self.canvas.imscale) - 1
             voxels_to_update = np.array([voxels_to_update[:, 1], voxels_to_update[:, 0]]).T
             # Update RGB
             self.annotations.revert_slice(voxels_to_update)
@@ -219,6 +250,11 @@ class PaintTools:
         self.old_y = event.y
 
     def fill(self, event):
+        """
+        Set the value of all the pixels surrounding the current position of the mouse cursor that
+        match the group at that position.
+        :param event: Position of the mouse cursor when the function is called.
+        """
         offset_x, offset_y = self.canvas.get_offsets()
         if self.current_key:
             self.annotations.fill(
@@ -229,12 +265,25 @@ class PaintTools:
             self.canvas.update_image(self.annotations.picRGB)
 
     def save(self):
+        """
+        Save the changes applied to the annotations. Update the backup.
+        """
         self.annotations.apply_changes()
 
 
-class PaintAnnotations(object):
+class PaintAnnotations:
+    """
+    Class to load the user application to modify volumetric cerebellar annotations.
+    """
 
     def __init__(self, annotation, nissl, dict_reg_ids, icon_folder="icons"):
+        """
+        Initialize the application.
+        :param annotation: np.ndarray annotation volume
+        :param nissl: np.ndarray Nissl volume
+        :param dict_reg_ids: dictionary linking cerebellum layers to their region ids.
+        :param icon_folder: folder location for the icons used in the app
+        """
         self.root = Tk()
         self.root.title("Mouse Brain Paint")
         self.root.geometry('800x600')
@@ -250,4 +299,7 @@ class PaintAnnotations(object):
         self.root.mainloop()
 
     def get_annotations(self):
+        """
+        Getter for the annotations volume.
+        """
         return self.annotations.annotation

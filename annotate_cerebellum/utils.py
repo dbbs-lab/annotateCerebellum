@@ -1,6 +1,10 @@
+"""
+Utility functions for all applications.
+"""
 import nrrd
 import numpy as np
 from collections import OrderedDict
+
 
 DEFAULT_HEADER = OrderedDict([('type', 'uint32'),
              ('dimension', 3),
@@ -46,3 +50,58 @@ def save_nrrd_npy_file(filename, data, header=None):
             nrrd.write(filename, data)
     else:
         raise Exception("Extension not recognized, file could not be opened.")
+
+
+def find_group(image, position, id_reg):
+    """
+    Find all voxels labeled with the same id_reg id.
+    :param image: np.ndarray Image 2D array.
+    :param position: Starting 2D position for exploration
+    :param id_reg: Id of the region group.
+    :return: List of positions surrounding the starting position that match the id.
+    :rtype: np.ndarray
+    """
+    explored = np.zeros(image.shape, dtype=bool)
+    to_explore = [position]
+    list_position = []
+    while len(to_explore) > 0:
+        current_pos = to_explore.pop()
+        explored[current_pos[0], current_pos[1]] = True
+        if image[current_pos[0], current_pos[1]] == id_reg:
+            list_position.append(current_pos)
+            for x in range(-1, 2):
+                for y in range(-1, 2):
+                    new_vox = [current_pos[0] + x, current_pos[1] + y]
+                    if not explored[new_vox[0], new_vox[1]] and new_vox not in to_explore:
+                        to_explore.append(new_vox)
+    return np.array(list_position)
+
+
+def draw_2d_line(x0, y0, x1, y1):
+    """
+    Draws a 2D line between 2 points and returns intermediate positions.
+    :return: list of pixel crossed by the line.
+    :rtype: np.ndarray
+    """
+    dx = abs(x1 - x0)
+    sx = 1 if x0 < x1 else -1
+    dy = -abs(y1 - y0)
+    sy = 1 if y0 < y1 else -1
+    error = dx + dy
+    voxels = []
+    while True:
+        voxels.append([x0, y0])
+        if abs(x0 - x1) < 1 and abs(y0 - y1) < 1:
+            break
+        e2 = 2 * error
+        if e2 >= dy:
+            if abs(x0 - x1) < 1:
+                break
+            error = error + dy
+            x0 = x0 + sx
+        if e2 <= dx:
+            if abs(y0 - y1) < 1:
+                break
+            error = error + dx
+            y0 = y0 + sy
+    return np.unique(np.asarray(np.rint(np.array(voxels)), dtype=int), axis=0)
