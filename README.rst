@@ -81,6 +81,7 @@ Several buttons are shown in the upper menu:
   - blue is fiber tracts (arbor vitae)
   - black is outside of the brain
 * The |save| button allow you to save your changes. Please note that every change not saved will be not stored in the output file. Also, the eraser button will not be able to correct the changes that have been saved.
+* The |revert| button allow you to undo your last operation. Only one operation can be reverted.
 
 .. |Interface_image| image:: docs/source/_static/PaintApp.png
 .. |pen| image:: icons/pen.png
@@ -92,4 +93,6 @@ Several buttons are shown in the upper menu:
 .. |move| image:: icons/move.png
     :width: 15px
 .. |save| image:: icons/save.png
+    :width: 15px
+.. |revert| image:: icons/revert.png
     :width: 15px
