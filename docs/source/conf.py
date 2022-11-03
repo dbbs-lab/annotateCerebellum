@@ -8,7 +8,7 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath('../../annotate_cerebellum'))
+sys.path.insert(0, os.path.abspath('../..'))
 
 project = 'Cerebellum Annotation Toolbox'
 copyright = '2022, DBBS University of Pavia'
@@ -36,3 +36,4 @@ exclude_patterns = [
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static', "../../icons"]
+autosummary_generate = True

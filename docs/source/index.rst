@@ -1,13 +1,14 @@
-.. Cerebellum Annotation Toolbox documentation master file, created by
-sphinx-quickstart on Wed Oct 26 11:08:45 2022.
-You can adapt this file completely to your liking, but it should at least
-contain the root `toctree` directive.
-
 .. include:: ../../README.rst
 
-Modules
-=======
-.. automodule:: annotate_cerebellum
+Packages
+========
+
+.. autosummary::
+    :toctree: _autosummary
+    :template: custom-module-template.rst
+    :recursive:
+
+    annotate_cerebellum
 
 Indices and tables
 ==================

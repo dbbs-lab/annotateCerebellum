@@ -16,7 +16,7 @@ To install **annotateCerebellum**, run the following command:
 
 .. code-block:: bash
 
-    python install -e .
+    pip install -e .
 
 Generate Documentations
 ~~~~~~~~~~~~~~~~~~~~~~~
