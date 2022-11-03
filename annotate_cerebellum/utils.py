@@ -5,26 +5,26 @@ import nrrd
 import numpy as np
 from collections import OrderedDict
 
-
 DEFAULT_HEADER = OrderedDict([('type', 'uint32'),
-             ('dimension', 3),
-             ('space dimension', 3),
-             ('sizes', np.array([528, 320, 456])),
-             ('space directions',
-              np.array([[25.,  0.,  0.],
-                     [ 0., 25.,  0.],
-                     [ 0.,  0., 25.]])),
-             ('endian', 'little'),
-             ('encoding', 'gzip'),
-             ('space origin', np.array([0., 0., 0.]))])
+                              ('dimension', 3),
+                              ('space dimension', 3),
+                              ('sizes', np.array([528, 320, 456])),
+                              ('space directions',
+                               np.array([[25., 0., 0.],
+                                         [0., 25., 0.],
+                                         [0., 0., 25.]])),
+                              ('endian', 'little'),
+                              ('encoding', 'gzip'),
+                              ('space origin', np.array([0., 0., 0.]))])
 
 
 def load_nrrd_npy_file(filename):
     """
     Loads a volumetric nrrd file or a numpy file.
-    :param filename: path to the file to open.
+
+    :param str filename: path to the file to open.
     :return: volumetric array stored in file.
-    :rtype: np.ndarray
+    :rtype: ndarray
     """
     if filename.endswith(".npy"):
         return np.load(filename)
@@ -37,9 +37,10 @@ def load_nrrd_npy_file(filename):
 def save_nrrd_npy_file(filename, data, header=None):
     """
     Save a volumetric array nrrd file or a numpy file.
-    :param filename: path to the file to save the data to.
-    :param data: np.ndarray data to store in file
-    :param header: Dictionary header for nrrd files
+
+    :param str filename: path to the file to save the data to.
+    :param ndarray data: data to store in file
+    :param dict header: Dictionary header for nrrd files
     """
     if filename.endswith(".npy"):
         np.save(filename, data)
@@ -55,11 +56,12 @@ def save_nrrd_npy_file(filename, data, header=None):
 def find_group(image, position, id_reg):
     """
     Find all voxels labeled with the same id_reg id.
-    :param image: np.ndarray Image 2D array.
-    :param position: Starting 2D position for exploration
-    :param id_reg: Id of the region group.
+
+    :param np.ndarray image: Image 2D array.
+    :param list position: Starting 2D position for exploration
+    :param int id_reg: Id of the region group.
     :return: List of positions surrounding the starting position that match the id.
-    :rtype: np.ndarray
+    :rtype: ndarray
     """
     explored = np.zeros(image.shape, dtype=bool)
     to_explore = [position]
@@ -69,19 +71,19 @@ def find_group(image, position, id_reg):
         explored[current_pos[0], current_pos[1]] = True
         if image[current_pos[0], current_pos[1]] == id_reg:
             list_position.append(current_pos)
-            for x in range(-1, 2):
-                for y in range(-1, 2):
-                    new_vox = [current_pos[0] + x, current_pos[1] + y]
-                    if not explored[new_vox[0], new_vox[1]] and new_vox not in to_explore:
-                        to_explore.append(new_vox)
+            for x, y in [[0, 1], [0, -1], [1, 0], [-1, 0]]:
+                new_vox = [current_pos[0] + x, current_pos[1] + y]
+                if not explored[new_vox[0], new_vox[1]] and new_vox not in to_explore:
+                    to_explore.append(new_vox)
     return np.array(list_position)
 
 
 def draw_2d_line(x0, y0, x1, y1):
     """
     Draws a 2D line between 2 points and returns intermediate positions.
+
     :return: list of pixel crossed by the line.
-    :rtype: np.ndarray
+    :rtype: ndarray
     """
     dx = abs(x1 - x0)
     sx = 1 if x0 < x1 else -1

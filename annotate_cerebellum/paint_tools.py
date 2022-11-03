@@ -21,9 +21,10 @@ class PaintTools:
         """
         Initialize the controller and the view of the paint toolbox for the annotation correction
         application.
-        :param placeholder: Parent widget holding the CanvasImage
-        :param icon_folder: Folder containing the icons of the painting toolbox.
-        :param canvas: View of the displayed annotations
+
+        :param Widget placeholder: Parent widget holding the CanvasImage
+        :param str icon_folder: Folder containing the icons of the painting toolbox.
+        :param Widget canvas: View of the displayed annotations
         :param annotations: Model of the displayed annotations
         """
         self.paint_tools = Frame(placeholder, relief=RIDGE, borderwidth=2)
@@ -107,9 +108,18 @@ class PaintTools:
                                   command=self.save)
         self.save_button.grid(row=0, column=6, padx=10, pady=10, sticky='nw')
 
+        # revert button
+        revert_image = Image.open(join(icon_folder, "revert.png"))
+        revert_image = revert_image.convert("RGB")
+        revert_image = revert_image.resize((50, 50), Image.ANTIALIAS)
+        self.revert_image = ImageTk.PhotoImage(revert_image)
+        self.revert_button = Button(self.paint_tools, padx=6, bg="white", image=self.revert_image,
+                                    command=self.revert)
+        self.revert_button.grid(row=1, column=6, padx=10, pady=10, sticky='nw')
+
     def grid(self, **kw):
         """
-        Put the Paint tools widget on the parent widget
+        Put the Paint tools widget on the parent widget.
         """
         self.paint_tools.grid(**kw)  # place CanvasImage widget on the grid
         self.paint_tools.grid(sticky='nw')  # make frame container sticky
@@ -148,7 +158,8 @@ class PaintTools:
 
     def __change_color(self, some_button):
         """
-        Change the active group or color button
+        Change the active group or color button.
+
         :param some_button: Button to activate
         """
         if self.active_color is not None:
@@ -186,7 +197,8 @@ class PaintTools:
 
     def __activate_button(self, some_button):
         """
-        Change the active tool button
+        Change the active tool button.
+
         :param some_button: Button to activate
         """
         if self.active_button is not None:
@@ -215,6 +227,7 @@ class PaintTools:
         """
         Draw all the voxels between the current and previously recorded position of the mouse
         cursor on the view and update the annotations.
+
         :param event: Position of the mouse cursor when the function is called.
         """
         offset_x, offset_y = self.canvas.get_offsets()
@@ -234,6 +247,7 @@ class PaintTools:
         """
         Revert the changes applied to the images and the annotation between the current and
         previously recorded position of the mouse cursor.
+
         :param event: Position of the mouse cursor when the function is called.
         """
         offset_x, offset_y = self.canvas.get_offsets()
@@ -244,7 +258,7 @@ class PaintTools:
                                             (event.y + offset_y) / self.canvas.imscale) - 1
             voxels_to_update = np.array([voxels_to_update[:, 1], voxels_to_update[:, 0]]).T
             # Update RGB
-            self.annotations.revert_slice(voxels_to_update)
+            self.annotations.revert_voxels(voxels_to_update)
             self.canvas.update_image(self.annotations.picRGB)
         self.old_x = event.x
         self.old_y = event.y
@@ -253,6 +267,7 @@ class PaintTools:
         """
         Set the value of all the pixels surrounding the current position of the mouse cursor that
         match the group at that position.
+
         :param event: Position of the mouse cursor when the function is called.
         """
         offset_x, offset_y = self.canvas.get_offsets()
@@ -270,6 +285,13 @@ class PaintTools:
         """
         self.annotations.apply_changes()
 
+    def revert(self):
+        """
+        Revert the last changes applied to the annotations.
+        """
+        self.annotations.revert_slice()
+        self.canvas.update_image(self.annotations.picRGB)
+
 
 class PaintAnnotations:
     """
@@ -279,6 +301,7 @@ class PaintAnnotations:
     def __init__(self, annotation, nissl, dict_reg_ids, icon_folder="icons"):
         """
         Initialize the application.
+
         :param annotation: np.ndarray annotation volume
         :param nissl: np.ndarray Nissl volume
         :param dict_reg_ids: dictionary linking cerebellum layers to their region ids.

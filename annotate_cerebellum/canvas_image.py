@@ -18,6 +18,12 @@ class AutoScrollbar(ttk.Scrollbar):
     """
 
     def set(self, lo, hi):
+        """
+        Set the position of the scrollbar and/or remove it if it is not needed.
+
+        :param lo: minimum position visible
+        :param hi: maximum position visible
+        """
         if float(lo) <= 0.0 and float(hi) >= 1.0:
             self.grid_remove()
         else:
@@ -25,9 +31,15 @@ class AutoScrollbar(ttk.Scrollbar):
             ttk.Scrollbar.set(self, lo, hi)
 
     def pack(self, **kw):
+        """
+        Exception: cannot use pack with this widget
+        """
         raise tk.TclError('Cannot use pack with the widget ' + self.__class__.__name__)
 
     def place(self, **kw):
+        """
+        Exception: cannot use place with this widget
+        """
         raise tk.TclError('Cannot use place with the widget ' + self.__class__.__name__)
 
 
