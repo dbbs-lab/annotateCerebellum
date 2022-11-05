@@ -17,7 +17,7 @@ class PaintTools:
     Contains also the view of the paint toolbox.
     """
 
-    def __init__(self, placeholder, icon_folder, canvas, annotations):
+    def __init__(self, placeholder, icon_folder, canvas, annotations, axis=0):
         """
         Initialize the controller and the view of the paint toolbox for the annotation correction
         application.
@@ -79,10 +79,22 @@ class PaintTools:
         # slice position
         slice_label = Label(self.paint_tools, text="Id slice:", font=('Arial', 10, 'bold'))
         slice_label.grid(row=0, column=2, padx=10, sticky='w')
-        self.slice_scale = Scale(self.paint_tools,
-                                 from_=self.annotations.idsX[0], to=self.annotations.idsX[1],
-                                 orient=HORIZONTAL, length=150, command=self.change_slice)
-        self.slice_scale.set(self.annotations.idX)
+        if axis == 0:
+            self.slice_scale = Scale(self.paint_tools,
+                                     from_=self.annotations.idsX[0], to=self.annotations.idsX[1],
+                                     orient=HORIZONTAL, length=150, command=self.change_slice)
+        elif axis == 1:
+            self.slice_scale = Scale(self.paint_tools,
+                                     from_=self.annotations.idsY[0], to=self.annotations.idsY[1],
+                                     orient=HORIZONTAL, length=150, command=self.change_slice)
+        elif axis == 2:
+            self.slice_scale = Scale(self.paint_tools,
+                                     from_=self.annotations.idsZ[0], to=self.annotations.idsZ[1],
+                                     orient=HORIZONTAL, length=150, command=self.change_slice)
+        else:
+            raise Exception(("The axis value is incorrect: {}. "
+                             "Only 3 dimensions are possible").format(axis))
+        self.slice_scale.set(self.annotations.slice_pos)
         self.slice_scale.grid(row=0, column=3, padx=10, pady=10, columnspan=3, sticky='nswe')
 
         # colors
@@ -298,7 +310,7 @@ class PaintAnnotations:
     Class to load the user application to modify volumetric cerebellar annotations.
     """
 
-    def __init__(self, annotation, nissl, dict_reg_ids, icon_folder="icons"):
+    def __init__(self, annotation, nissl, dict_reg_ids, axis=0, icon_folder="icons"):
         """
         Initialize the application.
 
@@ -314,10 +326,10 @@ class PaintAnnotations:
         self.root.rowconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=7)
 
-        self.annotations = AnnotationImage(annotation, dict_reg_ids, nissl)
+        self.annotations = AnnotationImage(annotation, dict_reg_ids, nissl, axis)
         self.canvas = CanvasImage(self.root, self.annotations.picRGB)
         self.canvas.grid(row=1, column=0)  # show widget
-        self.toolbox = PaintTools(self.root, icon_folder, self.canvas, self.annotations)
+        self.toolbox = PaintTools(self.root, icon_folder, self.canvas, self.annotations, axis)
         self.toolbox.grid(row=0, column=0)
         self.root.mainloop()
 

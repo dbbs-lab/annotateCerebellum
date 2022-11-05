@@ -28,7 +28,7 @@ class AnnotationImage:
     Applies modification on the annotations.
     """
 
-    def __init__(self, annotation, dict_reg_ids, nissl):
+    def __init__(self, annotation, dict_reg_ids, nissl, axis=0):
         """
         Initialize the annotation model class.
 
@@ -54,24 +54,74 @@ class AnnotationImage:
         self.backup = np.copy(self.annCPY)
         self.previous_state = np.copy(self.annCPY)
 
+        self.axis = axis
         filter_ = np.where(np.isin(self.annCPY, [DICT_REG_NUMBERS["mol"], DICT_REG_NUMBERS["gl"]]))
-        self.idsX = [np.min(filter_[0]) - 1, np.max(filter_[0]) + 1]
-        self.idsY = [max(0, np.min(filter_[1] - 80)),
-                     min(int(annotation.shape[1]) - 1, np.max(filter_[1] + 80))]
-        self.idsZ = [max(0, np.min(filter_[2] - 120)),
-                     min(int(annotation.shape[2]) - 1, np.max(filter_[2] + 120))]
-        self.idX = int(np.mean(filter_[0]))
+        offsets = [80, 80, 120]
+        if not 0 <= axis <= 2:
+            raise Exception(("The axis value is incorrect: {}. "
+                             "Only 3 dimensions are possible").format(self.axis))
+        offsets[axis] = 1
+        self.idsX = [max(0, np.min(filter_[0] - offsets[0])),
+                     min(int(annotation.shape[0]) - 1, np.max(filter_[0] + offsets[0]))]
+        self.idsY = [max(0, np.min(filter_[1] - offsets[1])),
+                     min(int(annotation.shape[1]) - 1, np.max(filter_[1] + offsets[1]))]
+        self.idsZ = [max(0, np.min(filter_[2] - offsets[2])),
+                     min(int(annotation.shape[2]) - 1, np.max(filter_[2] + offsets[2]))]
+        print(self.idsZ)
+        self.slice_pos = int(np.mean(filter_[axis]))
         self.generate_image()
+
+    def get_slice(self):
+        """
+        Get the slice indexes in the volume for the image to display
+
+        :return: slice of the image to display
+        :rtype: np.IndexExpression
+        """
+        if self.axis == 0:
+            return np.s_[self.slice_pos,
+                         self.idsY[0]:self.idsY[1] + 1,
+                         self.idsZ[0]:self.idsZ[1] + 1]
+        elif self.axis == 1:
+            return np.s_[self.idsX[0]:self.idsX[1] + 1,
+                         self.slice_pos,
+                         self.idsZ[0]:self.idsZ[1] + 1]
+        elif self.axis == 2:
+            return np.s_[self.idsX[0]:self.idsX[1] + 1,
+                         self.idsY[0]:self.idsY[1] + 1,
+                         self.slice_pos]
+        else:
+            raise Exception(("The axis value is incorrect: {}. "
+                             "Only 3 dimensions are possible").format(self.axis))
+
+    def get_position(self, pixel):
+        """
+        Get the voxel index in the volume for the pixel chosen
+
+        :param list pixel: List of the position of the voxel of interest
+        :return: index of the voxel
+        :rtype: np.IndexExpression
+        """
+        if self.axis == 0:
+            return np.s_[self.slice_pos, self.idsY[0] + pixel[0], self.idsZ[0] + pixel[1]]
+        if self.axis == 1:
+            return np.s_[self.idsX[0] + pixel[0], self.slice_pos, self.idsZ[0] + pixel[1]]
+        if self.axis == 2:
+            return np.s_[self.idsX[0] + pixel[0], self.idsY[0] + pixel[1], self.slice_pos]
 
     def generate_image(self):
         """
         Generate a 2D RGB image which correspond to the current coronal slice.
         """
-        slice_pos = np.s_[self.idX, self.idsY[0]:self.idsY[1] + 1, self.idsZ[0]:self.idsZ[1] + 1]
+        slice_pos = self.get_slice()
         self.picRGB = np.zeros((self.annCPY[slice_pos].shape[0],
                                 self.annCPY[slice_pos].shape[1], 3), np.uint16)
-        self.picRGB[:, :, 0] = self.picRGB[:, :, 1] = self.picRGB[:, :, 2] = np.uint16(
-            255.0 * (self.nissl[slice_pos] / np.max(self.nissl[slice_pos])))
+        max_nissl = np.max(self.nissl[slice_pos])
+        if max_nissl > 0:
+            self.picRGB[:, :, 0] = self.picRGB[:, :, 1] = self.picRGB[:, :, 2] = np.uint16(
+                255.0 * (self.nissl[slice_pos] / max_nissl))
+        else:
+            self.picRGB[:, :, 0] = self.picRGB[:, :, 1] = self.picRGB[:, :, 2] = 0
 
         self.nissl_img = np.copy(self.picRGB)
 
@@ -91,7 +141,7 @@ class AnnotationImage:
         """
         change = False
         for voxel in voxels_to_update:
-            slice_pos = np.s_[self.idX, self.idsY[0] + voxel[0], self.idsZ[0] + voxel[1]]
+            slice_pos = self.get_position(voxel)
             if 0 <= voxel[0] < self.picRGB.shape[0] and \
                     0 <= voxel[1] < self.picRGB.shape[1] and \
                     not self.annCPY[slice_pos] == DICT_REG_NUMBERS["prot"] and \
@@ -115,7 +165,7 @@ class AnnotationImage:
         :param ndarray voxels_to_update: list of voxels to revert.
         """
         for voxel in voxels_to_update:
-            slice_pos = np.s_[self.idX, self.idsY[0] + voxel[0], self.idsZ[0] + voxel[1]]
+            slice_pos = self.get_position(voxel)
             if 0 <= voxel[0] < self.picRGB.shape[0] and \
                     0 <= voxel[1] < self.picRGB.shape[1] and \
                     not self.annCPY[slice_pos] == DICT_REG_NUMBERS["prot"]:
@@ -128,13 +178,13 @@ class AnnotationImage:
                     np.minimum(self.nissl_img[voxel[0],
                                               voxel[1]] + 77 * np.array(DICT_REG_COLORS[key]), 255))
 
-    def change_slice(self, coronal_pos):
+    def change_slice(self, new_pos):
         """
-        Change the coronal position of the slice and regenerate the image.
+        Change the position of the slice and regenerate the image.
 
-        :param int coronal_pos: New position of the slice.
+        :param int new_pos: New position of the slice.
         """
-        self.idX = coronal_pos
+        self.slice_pos = new_pos
         self.generate_image()
 
     def fill(self, position, key):
@@ -145,7 +195,8 @@ class AnnotationImage:
         :param str key: Key of the DICT_REG_NUMBERS and DICT_REG_COLORS corresponding to the new
             value.
         """
-        image = self.annCPY[self.idX, self.idsY[0]:self.idsY[1] + 1, self.idsZ[0]:self.idsZ[1] + 1]
+        slice_pos = self.get_slice()
+        image = self.annCPY[slice_pos]
         voxels_to_update = find_group(image, position, image[position[0], position[1]])
         self.update_slice(voxels_to_update, key)
 

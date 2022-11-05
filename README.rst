@@ -52,6 +52,10 @@ To launch the application, just run:
 In the terminal, the list of the cerebellar cortex subregions will be listed with their
 corresponding number. You will be asked to provide the number of region that you want to correct.
 
+Then, the list of the three main axis to visualize the brain will be listed with their
+corresponding number. You will be asked to provide the number of axis of the slices that you want
+to display.
+
 Once the region has been loaded, the following window will open in which you can modify the 
 annotation file you have selected as input.
 
