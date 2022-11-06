@@ -79,21 +79,10 @@ class PaintTools:
         # slice position
         slice_label = Label(self.paint_tools, text="Id slice:", font=('Arial', 10, 'bold'))
         slice_label.grid(row=0, column=2, padx=10, sticky='w')
-        if axis == 0:
-            self.slice_scale = Scale(self.paint_tools,
-                                     from_=self.annotations.idsX[0], to=self.annotations.idsX[1],
-                                     orient=HORIZONTAL, length=150, command=self.change_slice)
-        elif axis == 1:
-            self.slice_scale = Scale(self.paint_tools,
-                                     from_=self.annotations.idsY[0], to=self.annotations.idsY[1],
-                                     orient=HORIZONTAL, length=150, command=self.change_slice)
-        elif axis == 2:
-            self.slice_scale = Scale(self.paint_tools,
-                                     from_=self.annotations.idsZ[0], to=self.annotations.idsZ[1],
-                                     orient=HORIZONTAL, length=150, command=self.change_slice)
-        else:
-            raise Exception(("The axis value is incorrect: {}. "
-                             "Only 3 dimensions are possible").format(axis))
+        self.slice_scale = Scale(self.paint_tools,
+                                 from_=self.annotations.ids[axis, 0],
+                                 to=self.annotations.ids[axis, 1],
+                                 orient=HORIZONTAL, length=150, command=self.change_slice)
         self.slice_scale.set(self.annotations.slice_pos)
         self.slice_scale.grid(row=0, column=3, padx=10, pady=10, columnspan=3, sticky='nswe')
 

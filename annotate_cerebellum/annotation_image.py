@@ -47,27 +47,27 @@ class AnnotationImage:
         self.inv_dict_reg_ids[DICT_REG_NUMBERS["gl"]] = self.dict_reg_ids["gl"][0]
         self.inv_dict_reg_ids[DICT_REG_NUMBERS["fib"]] = self.dict_reg_ids["fib"][0]
 
+        self.axis = axis
         self.annCPY = np.zeros(annotation.shape, np.int8)
         self.annCPY[self.annotation > 0] = -1
         for key, value in DICT_REG_NUMBERS.items():
             self.annCPY[np.isin(self.annotation, self.dict_reg_ids[key])] = value
+        if self.axis == 2:
+            self.annCPY = self.annCPY.swapaxes(0, 1)
+            self.nissl = self.nissl.swapaxes(0, 1)
         self.backup = np.copy(self.annCPY)
         self.previous_state = np.copy(self.annCPY)
 
-        self.axis = axis
         filter_ = np.where(np.isin(self.annCPY, [DICT_REG_NUMBERS["mol"], DICT_REG_NUMBERS["gl"]]))
         offsets = [80, 80, 120]
         if not 0 <= axis <= 2:
             raise Exception(("The axis value is incorrect: {}. "
                              "Only 3 dimensions are possible").format(self.axis))
         offsets[axis] = 1
-        self.idsX = [max(0, np.min(filter_[0] - offsets[0])),
-                     min(int(annotation.shape[0]) - 1, np.max(filter_[0] + offsets[0]))]
-        self.idsY = [max(0, np.min(filter_[1] - offsets[1])),
-                     min(int(annotation.shape[1]) - 1, np.max(filter_[1] + offsets[1]))]
-        self.idsZ = [max(0, np.min(filter_[2] - offsets[2])),
-                     min(int(annotation.shape[2]) - 1, np.max(filter_[2] + offsets[2]))]
-        print(self.idsZ)
+        self.ids = np.zeros((3, 2), dtype=int)
+        for i in range(3):
+            self.ids[i] = [max(0, np.min(filter_[i] - offsets[i])),
+                           min(int(self.annCPY.shape[i]) - 1, np.max(filter_[i] + offsets[i]))]
         self.slice_pos = int(np.mean(filter_[axis]))
         self.generate_image()
 
@@ -80,15 +80,15 @@ class AnnotationImage:
         """
         if self.axis == 0:
             return np.s_[self.slice_pos,
-                         self.idsY[0]:self.idsY[1] + 1,
-                         self.idsZ[0]:self.idsZ[1] + 1]
+                         self.ids[1, 0]:self.ids[1, 1] + 1,
+                         self.ids[2, 0]:self.ids[2, 1] + 1]
         elif self.axis == 1:
-            return np.s_[self.idsX[0]:self.idsX[1] + 1,
+            return np.s_[self.ids[0, 0]:self.ids[0, 1] + 1,
                          self.slice_pos,
-                         self.idsZ[0]:self.idsZ[1] + 1]
+                         self.ids[2, 0]:self.ids[2, 1] + 1]
         elif self.axis == 2:
-            return np.s_[self.idsX[0]:self.idsX[1] + 1,
-                         self.idsY[0]:self.idsY[1] + 1,
+            return np.s_[self.ids[0, 0]:self.ids[0, 1] + 1,
+                         self.ids[1, 0]:self.ids[1, 1] + 1,
                          self.slice_pos]
         else:
             raise Exception(("The axis value is incorrect: {}. "
@@ -103,11 +103,11 @@ class AnnotationImage:
         :rtype: np.IndexExpression
         """
         if self.axis == 0:
-            return np.s_[self.slice_pos, self.idsY[0] + pixel[0], self.idsZ[0] + pixel[1]]
+            return np.s_[self.slice_pos, self.ids[1, 0] + pixel[0], self.ids[2, 0] + pixel[1]]
         if self.axis == 1:
-            return np.s_[self.idsX[0] + pixel[0], self.slice_pos, self.idsZ[0] + pixel[1]]
+            return np.s_[self.ids[0, 0] + pixel[0], self.slice_pos, self.ids[2, 0] + pixel[1]]
         if self.axis == 2:
-            return np.s_[self.idsX[0] + pixel[0], self.idsY[0] + pixel[1], self.slice_pos]
+            return np.s_[self.ids[1, 0] + pixel[0], self.ids[0, 0] + pixel[1], self.slice_pos]
 
     def generate_image(self):
         """
@@ -205,5 +205,6 @@ class AnnotationImage:
         Save changes applied on the annotations. Update backup.
         """
         filter_ = self.annCPY != self.backup
-        self.annotation[filter_] = self.inv_dict_reg_ids[self.annCPY[filter_]]
+        filter_ann = filter_.swapaxes(0, 1) if self.axis == 2 else filter_
+        self.annotation[filter_ann] = self.inv_dict_reg_ids[self.annCPY[filter_]]
         self.backup = np.copy(self.annCPY)

@@ -66,8 +66,7 @@ paintAppli = PaintAnnotations(ann, nissl,
                                   "fib": ids_FT,
                                   "out": [0],
                                   "prot": ids_prot
-                              },
-                              axis)
+                              }, axis)
 
 ann = paintAppli.get_annotations()
 save_nrrd_npy_file(output_filename, ann, header=DEFAULT_HEADER)
