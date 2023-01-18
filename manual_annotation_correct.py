@@ -8,6 +8,8 @@ from JSONread import *
 DATA_FOLDER = "data"
 nissl_filename = join(DATA_FOLDER, "ara_nissl_25.nrrd")
 annotation_filename = join(DATA_FOLDER, "annotation_corrected_clfd.npy")
+backup_filename = join(DATA_FOLDER, "annotation_corrected_clf.npy")
+
 hierarchy_filename = join(DATA_FOLDER, "brain_regions.json")
 output_filename = join(DATA_FOLDER, "annotation_corrected_clfd.npy")
 
@@ -22,6 +24,7 @@ search_children(jsoncontent['msg'][0])
 # Load Nissl and annotations
 nissl = load_nrrd_npy_file(nissl_filename)
 ann = load_nrrd_npy_file(annotation_filename)
+backup = load_nrrd_npy_file(backup_filename)
 
 u_regions = find_unique_regions(ann, id_to_region_dictionary_ALLNAME,
                                 region_dictionary_to_id_ALLNAME,
@@ -39,6 +42,8 @@ for i, id_ in enumerate(ids_mol[1:]):
     print(i, region_dictionary_to_id_parent[id_to_region_dictionary[id_]])
 
 i = int(input("Enter the number of the region to correct "))
+if i + 1 >= len(ids_mol):
+    raise Exception("Incorrect region number")
 id_mol = ids_mol[i + 1]
 parent_name = region_dictionary_to_id_parent[id_to_region_dictionary[id_mol]]
 print("You have selected:")
@@ -66,7 +71,7 @@ paintAppli = PaintAnnotations(ann, nissl,
                                   "fib": ids_FT,
                                   "out": [0],
                                   "prot": ids_prot
-                              }, axis)
+                              }, axis, backup=backup)
 
 ann = paintAppli.get_annotations()
 save_nrrd_npy_file(output_filename, ann, header=DEFAULT_HEADER)

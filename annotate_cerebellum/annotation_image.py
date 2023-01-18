@@ -11,6 +11,7 @@ DICT_REG_NUMBERS = {
     "prot": 2,
     "mol": 3,
     "gl": 4,
+    "corrected": 5,
 }
 
 DICT_REG_COLORS = {
@@ -19,6 +20,7 @@ DICT_REG_COLORS = {
     "fib": (0, 0, 1),
     "out": (0, 0, 0),
     "prot": (1, 0, 1),
+    "corrected": (1, 1, 0),
 }
 
 
@@ -28,7 +30,7 @@ class AnnotationImage:
     Applies modification on the annotations.
     """
 
-    def __init__(self, annotation, dict_reg_ids, nissl, axis=0):
+    def __init__(self, annotation, dict_reg_ids, nissl, axis=0, backup=None):
         """
         Initialize the annotation model class.
 
@@ -38,9 +40,12 @@ class AnnotationImage:
         :param ndarray nissl: Volumetric array of float corresponding to nissl expression
         """
         self.annotation = annotation
+        self.orig_ann = backup
         self.nissl = np.copy(nissl)
         if self.nissl.shape != self.annotation.shape:
             raise Exception("The annotation and nissl volumes must have the same shape.")
+        if backup is not None and self.annotation.shape != backup.shape:
+            raise Exception("The annotation and backup volumes must have the same shape.")
         self.dict_reg_ids = dict_reg_ids
         self.inv_dict_reg_ids = np.zeros(np.max(list(DICT_REG_NUMBERS.values())) + 1, dtype=int)
         self.inv_dict_reg_ids[DICT_REG_NUMBERS["mol"]] = self.dict_reg_ids["mol"][0]
@@ -49,19 +54,30 @@ class AnnotationImage:
 
         if not 0 <= axis <= 2:
             raise Exception(("The axis value is incorrect: {}. "
-                             "Only 3 dimensions are possible").format(self.axis))
+                             "Only 3 dimensions are possible").format(axis))
         self.axis = axis
         self.annCPY = np.zeros(annotation.shape, np.int8)
         self.annCPY[self.annotation > 0] = -1
         for key, value in DICT_REG_NUMBERS.items():
-            self.annCPY[np.isin(self.annotation, self.dict_reg_ids[key])] = value
+            if key in self.dict_reg_ids:
+                self.annCPY[np.isin(self.annotation, self.dict_reg_ids[key])] = value
         offsets = [80, 80, 120]
         offsets[axis] = 1
+        if backup is not None:
+            self.backup = np.zeros(annotation.shape, np.int8)
+            self.backup[backup > 0] = -1
+            for key, value in DICT_REG_NUMBERS.items():
+                if key in self.dict_reg_ids:
+                    self.backup[np.isin(backup, self.dict_reg_ids[key])] = value
+        else:
+            self.backup = np.copy(self.annCPY)
+        self.annCPY[(self.annCPY == DICT_REG_NUMBERS["out"]) *
+                    (self.backup != self.annCPY)] = DICT_REG_NUMBERS["corrected"]
         if self.axis == 2:
             self.annCPY = self.annCPY.swapaxes(0, 1)
+            self.backup = self.backup.swapaxes(0, 1)
             self.nissl = self.nissl.swapaxes(0, 1)
             offsets = [offsets[1], offsets[0], offsets[2]]
-        self.backup = np.copy(self.annCPY)
         self.previous_state = np.copy(self.annCPY)
 
         filter_ = np.where(np.isin(self.annCPY, [DICT_REG_NUMBERS["mol"], DICT_REG_NUMBERS["gl"]]))
@@ -150,6 +166,8 @@ class AnnotationImage:
                 if not change:
                     self.previous_state = np.copy(self.annCPY)
                     change = True
+                if key == "out" and DICT_REG_NUMBERS[key] != self.backup[slice_pos]:
+                    key = "corrected"
                 self.annCPY[slice_pos] = DICT_REG_NUMBERS[key]
                 self.picRGB[voxel[0], voxel[1]] = np.uint8(
                     np.minimum(self.nissl_img[voxel[0],
@@ -171,13 +189,18 @@ class AnnotationImage:
                     0 <= voxel[1] < self.picRGB.shape[1] and \
                     not self.annCPY[slice_pos] == DICT_REG_NUMBERS["prot"]:
                 self.annCPY[slice_pos] = self.backup[slice_pos]
-                key = None
-                for key, value in DICT_REG_NUMBERS.items():
-                    if value == self.backup[slice_pos]:
-                        break
-                self.picRGB[voxel[0], voxel[1]] = np.uint8(
-                    np.minimum(self.nissl_img[voxel[0],
-                                              voxel[1]] + 77 * np.array(DICT_REG_COLORS[key]), 255))
+                if self.annCPY[slice_pos] >= 0:
+                    key = None
+                    for loc_key, value in DICT_REG_NUMBERS.items():
+                        if value == self.backup[slice_pos]:
+                            key = loc_key
+                            break
+                    if key:
+                        self.picRGB[voxel[0], voxel[1]] = np.uint8(np.minimum(
+                            self.nissl_img[voxel[0],
+                                           voxel[1]] + 77 * np.array(DICT_REG_COLORS[key]), 255))
+                else:
+                    self.picRGB[voxel[0], voxel[1]] = np.uint8(self.nissl_img[voxel[0], voxel[1]])
 
     def change_slice(self, new_pos):
         """
@@ -209,4 +232,7 @@ class AnnotationImage:
 
         filter_ann = (filter_[1], filter_[0], filter_[2]) if self.axis == 2 else filter_
         self.annotation[filter_ann] = self.inv_dict_reg_ids[self.annCPY[filter_]]
+        filter_ = np.where(self.annCPY == self.backup)
+        filter_ann = (filter_[1], filter_[0], filter_[2]) if self.axis == 2 else filter_
+        self.annotation[filter_ann] = self.orig_ann[filter_ann]
         self.backup = np.copy(self.annCPY)

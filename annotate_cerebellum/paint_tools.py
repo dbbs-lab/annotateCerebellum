@@ -252,7 +252,7 @@ class PaintTools:
         :param event: Position of the mouse cursor when the function is called.
         """
         offset_x, offset_y = self.canvas.get_offsets()
-        if self.old_x and self.old_y and self.current_key:
+        if self.old_x and self.old_y:
             voxels_to_update = draw_2d_line((self.old_x + offset_x) / self.canvas.imscale,
                                             (self.old_y + offset_y) / self.canvas.imscale,
                                             (event.x + offset_x) / self.canvas.imscale,
@@ -299,7 +299,7 @@ class PaintAnnotations:
     Class to load the user application to modify volumetric cerebellar annotations.
     """
 
-    def __init__(self, annotation, nissl, dict_reg_ids, axis=0, icon_folder="icons"):
+    def __init__(self, annotation, nissl, dict_reg_ids, axis=0, icon_folder="icons", backup=None):
         """
         Initialize the application.
 
@@ -315,7 +315,7 @@ class PaintAnnotations:
         self.root.rowconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=7)
 
-        self.annotations = AnnotationImage(annotation, dict_reg_ids, nissl, axis)
+        self.annotations = AnnotationImage(annotation, dict_reg_ids, nissl, axis, backup)
         self.canvas = CanvasImage(self.root, self.annotations.picRGB)
         self.canvas.grid(row=1, column=0)  # show widget
         self.toolbox = PaintTools(self.root, icon_folder, self.canvas, self.annotations, axis)
