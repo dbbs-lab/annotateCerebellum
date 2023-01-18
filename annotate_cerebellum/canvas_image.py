@@ -4,6 +4,7 @@ Code from foobar167
 See https://stackoverflow.com/questions/41656176/tkinter-canvas-zoom-move-pan#answers
 """
 
+import numpy as np
 import math
 import warnings
 import tkinter as tk
@@ -58,7 +59,7 @@ class CanvasImage:
         self.__delta = 1.3  # zoom magnitude
         self.__filter = Image.NEAREST  # could be: NEAREST, BILINEAR, BICUBIC and ANTIALIAS
         self.__previous_state = 0  # previous state of the keyboard
-        self.image_array = image
+        self.image_array = np.copy(image)
         # Create ImageFrame in placeholder widget
         self.__imframe = ttk.Frame(placeholder)  # placeholder of the ImageFrame object
         # Vertical and horizontal scrollbars for canvas
@@ -256,7 +257,7 @@ class CanvasImage:
             self.__pyramid.append(self.__pyramid[-1].resize((int(w), int(h)), self.__filter))
 
     def update_image(self, image):
-        self.image_array = image
+        self.image_array = np.copy(image)
         self.load_image()
         self.show_image()
 
