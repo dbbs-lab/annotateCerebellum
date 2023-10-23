@@ -228,11 +228,12 @@ class AnnotationImage:
         """
         Save changes applied on the annotations. Update backup.
         """
-        filter_ = np.where(self.annCPY != self.backup)
-
+        protected_vox = self.annCPY == DICT_REG_NUMBERS["prot"]
+        modified_vox = self.annCPY != self.backup
+        filter_ = np.where(modified_vox * ~protected_vox)
         filter_ann = (filter_[1], filter_[0], filter_[2]) if self.axis == 2 else filter_
         self.annotation[filter_ann] = self.inv_dict_reg_ids[self.annCPY[filter_]]
-        filter_ = np.where(self.annCPY == self.backup)
+        filter_ = np.where(~modified_vox * ~protected_vox)
         filter_ann = (filter_[1], filter_[0], filter_[2]) if self.axis == 2 else filter_
         self.annotation[filter_ann] = self.orig_ann[filter_ann]
         self.backup = np.copy(self.annCPY)
