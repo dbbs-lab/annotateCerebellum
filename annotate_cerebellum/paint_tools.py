@@ -43,7 +43,7 @@ class PaintTools:
         # pen button
         pen_image = Image.open(join(icon_folder, "pen.png"))
         pen_image = pen_image.convert("RGB")
-        pen_image = pen_image.resize((50, 50), Image.ANTIALIAS)
+        pen_image = pen_image.resize((50, 50), Image.LANCZOS)
         self.pen_image = ImageTk.PhotoImage(pen_image)
         self.pen_button = Button(self.paint_tools, padx=6, bg="white", image=self.pen_image,
                                  command=self.use_pen)
@@ -52,7 +52,7 @@ class PaintTools:
         # fill button
         fill_image = Image.open(join(icon_folder, "fill.png"))
         fill_image = fill_image.convert("RGB")
-        fill_image = fill_image.resize((50, 50), Image.ANTIALIAS)
+        fill_image = fill_image.resize((50, 50), Image.LANCZOS)
         self.fill_image = ImageTk.PhotoImage(fill_image)
         self.fill_button = Button(self.paint_tools, padx=6, bg="white", image=self.fill_image,
                                   command=self.use_fill)
@@ -61,7 +61,7 @@ class PaintTools:
         # revert button
         eraser_image = Image.open(join(icon_folder, "eraser.png"))
         eraser_image = eraser_image.convert("RGB")
-        eraser_image = eraser_image.resize((50, 50), Image.ANTIALIAS)
+        eraser_image = eraser_image.resize((50, 50), Image.LANCZOS)
         self.eraser_image = ImageTk.PhotoImage(eraser_image)
         self.eraser_button = Button(self.paint_tools, padx=6, bg="white", image=self.eraser_image,
                                     command=self.use_eraser)
@@ -70,7 +70,7 @@ class PaintTools:
         # move button
         move_image = Image.open(join(icon_folder, "move.png"))
         move_image = move_image.convert("RGB")
-        move_image = move_image.resize((50, 50), Image.ANTIALIAS)
+        move_image = move_image.resize((50, 50), Image.LANCZOS)
         self.move_image = ImageTk.PhotoImage(move_image)
         self.move_button = Button(self.paint_tools, padx=6, bg="white", image=self.move_image,
                                   command=self.use_move)
@@ -103,7 +103,7 @@ class PaintTools:
         # save button
         save_image = Image.open(join(icon_folder, "save.png"))
         save_image = save_image.convert("RGB")
-        save_image = save_image.resize((50, 50), Image.ANTIALIAS)
+        save_image = save_image.resize((50, 50), Image.LANCZOS)
         self.save_image = ImageTk.PhotoImage(save_image)
         self.save_button = Button(self.paint_tools, padx=6, bg="white", image=self.save_image,
                                   command=self.save)
@@ -112,7 +112,7 @@ class PaintTools:
         # revert button
         revert_image = Image.open(join(icon_folder, "revert.png"))
         revert_image = revert_image.convert("RGB")
-        revert_image = revert_image.resize((50, 50), Image.ANTIALIAS)
+        revert_image = revert_image.resize((50, 50), Image.LANCZOS)
         self.revert_image = ImageTk.PhotoImage(revert_image)
         self.revert_button = Button(self.paint_tools, padx=6, bg="white", image=self.revert_image,
                                     command=self.revert)
